@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: app-webflux
+
+server:
+  port: 8080
+
+stub:
+  base-url: ${STUB_BASE_URL:http://localhost:8081}
+
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  tracing:
+    sampling:
+      probability: 1.0

@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: app-mvc
+  threads:
+    virtual:
+      enabled: ${VIRTUAL_THREADS:false}
+
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200            # padrão do Tomcat, explícito para a comparação
+
+stub:
+  base-url: ${STUB_BASE_URL:http://localhost:8081}
+
+management:
+  server:
+    port: 9090            # porta separada: a coleta de métricas não disputa threads com a carga
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  tracing:
+    sampling:
+      probability: 1.0
