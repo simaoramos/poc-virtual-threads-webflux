@@ -1,5 +1,8 @@
 package poc.webflux;
 
+import java.time.Duration;
+
+import io.netty.channel.ChannelOption;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,16 +24,24 @@ public class WebfluxApplication {
      * O pool padrão do Reactor Netty é pequeno e tem fila de espera limitada.
      * Ajustado aqui para não virar gargalo artificial com 5.000 usuários.
      * O cliente JDK usado no MVC não limita conexões.
+     *
+     * Os timeouts são lidos das propriedades stub.* e aplicados aqui.
      */
     @Bean
-    WebClient stubClient(WebClient.Builder builder, @Value("${stub.base-url}") String baseUrl) {
+    WebClient stubClient(WebClient.Builder builder,
+                         @Value("${stub.base-url}") String baseUrl,
+                         @Value("${stub.connect-timeout}") Duration connectTimeout,
+                         @Value("${stub.read-timeout}") Duration readTimeout) {
         ConnectionProvider pool = ConnectionProvider.builder("stub")
                 .maxConnections(2000)
                 .pendingAcquireMaxCount(-1)
                 .build();
+        HttpClient httpClient = HttpClient.create(pool)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) connectTimeout.toMillis())
+                .responseTimeout(readTimeout);
         return builder
                 .baseUrl(baseUrl)
-                .clientConnector(new ReactorClientHttpConnector(HttpClient.create(pool)))
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
 }

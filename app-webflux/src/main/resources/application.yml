@@ -1,12 +1,16 @@
 spring:
   application:
     name: app-webflux
+  reactor:
+    context-propagation: auto   # leva traceId/MDC entre as threads do fluxo reativo
 
 server:
   port: 8080
 
 stub:
   base-url: ${STUB_BASE_URL:http://localhost:8081}
+  connect-timeout: 5s
+  read-timeout: 5s
 
 management:
   server:
