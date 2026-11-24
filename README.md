@@ -32,12 +32,6 @@ Para uma rodada mais curta:
 VARIANTS="mvc-virtual" LEVELS="100" DURATION=20s ./run-load.sh
 ```
 
-Para contar as linhas de código de cada versão:
-
-```bash
-scripts/count-lines.sh
-```
-
 ## Decisões para manter a comparação justa
 
 - Cada app roda num container limitado a 2 vCPU e 512 MB. O stub não tem limite e é não bloqueante, para nunca ser o gargalo.
@@ -64,10 +58,10 @@ Benchmark local, não representa produção.
 | webflux | 1.000 | | | | | |
 | webflux | 5.000 | | | | | |
 
-| Versão | Linhas de código | Tempo para escrever |
-|---|---|---|
-| MVC (platform e virtual) | | |
-| WebFlux | | |
+| Versão | Tempo para escrever |
+|---|---|
+| MVC (platform e virtual) | ~15 min (primeiro contato com o RestClient) |
+| WebFlux | ~1 h |
 
 Máquina: [CPU, memória, sistema operacional]
 
