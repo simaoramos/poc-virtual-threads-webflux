@@ -13,14 +13,14 @@ x-limits: &limits
 services:
   stub:
     build: { context: ., args: { MODULE: stub } }
-    ports: ["8081:8080"]
+    ports: ["8081:8081"]
 
   mvc-platform:
     <<: *limits
     build: { context: ., args: { MODULE: app-mvc } }
     depends_on: [stub]
     environment:
-      STUB_BASE_URL: http://stub:8080
+      STUB_BASE_URL: http://stub:8081
       VIRTUAL_THREADS: "false"
     ports: ["8082:8080", "9092:9090"]
 
@@ -29,7 +29,7 @@ services:
     build: { context: ., args: { MODULE: app-mvc } }
     depends_on: [stub]
     environment:
-      STUB_BASE_URL: http://stub:8080
+      STUB_BASE_URL: http://stub:8081
       VIRTUAL_THREADS: "true"
     ports: ["8083:8080", "9093:9090"]
 
@@ -38,5 +38,5 @@ services:
     build: { context: ., args: { MODULE: app-webflux } }
     depends_on: [stub]
     environment:
-      STUB_BASE_URL: http://stub:8080
+      STUB_BASE_URL: http://stub:8081
     ports: ["8084:8080", "9094:9090"]

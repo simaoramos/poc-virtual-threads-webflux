@@ -1,4 +1,4 @@
 server:
-  port: 8080
+  port: 8081
 stub:
   delay-ms: ${STUB_DELAY_MS:100}
