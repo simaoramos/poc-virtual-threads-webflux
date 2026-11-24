@@ -1,6 +1,10 @@
 spring:
   application:
     name: app-mvc
+  http:
+    clients:
+      connect-timeout: 5s
+      read-timeout: 5s
   threads:
     virtual:
       enabled: ${VIRTUAL_THREADS:false}
