@@ -13,14 +13,30 @@ DURATION=${DURATION:-1m}
 K6_IMAGE=${K6_IMAGE:-grafana/k6:latest}
 declare -A MGMT=([mvc-platform]=9092 [mvc-virtual]=9093 [webflux]=9094)
 
+START=$SECONDS
+# Checkpoint: hora, tempo decorrido desde o início e a mensagem.
+step() {
+  local e=$((SECONDS - START))
+  printf '[%s +%02d:%02d] %s\n' "$(date +%H:%M:%S)" $((e / 60)) $((e % 60)) "$*"
+}
+
+read -ra variants <<< "$VARIANTS"
+read -ra levels <<< "$LEVELS"
+total=$(( ${#variants[@]} * ${#levels[@]} ))
+step "Início: ${#variants[@]} variante(s) × ${#levels[@]} nível(is) = $total rodada(s) de $DURATION"
+
 mkdir -p results/raw
+step "Compilando os módulos (mvn package)"
 mvn -q -DskipTests package
+step "Construindo as imagens Docker"
 docker compose build -q
+step "Subindo o stub"
 docker compose up -d stub
 
 k6() { # $1 variante, $2 usuários, $3 duração, demais args extras
   local v=$1 vus=$2 dur=$3; shift 3
-  docker run --rm --network poc01_default \
+  # roda com o seu usuário para o k6 conseguir gravar o resumo em results/raw
+  docker run --rm --network poc01_default --user "$(id -u):$(id -g)" \
     -v "$PWD/load:/scripts:ro" -v "$PWD/results/raw:/out" \
     "$K6_IMAGE" run --quiet \
     -e TARGET="http://$v:8080/quote" -e VUS="$vus" -e DURATION="$dur" \
@@ -30,18 +46,26 @@ k6() { # $1 variante, $2 usuários, $3 duração, demais args extras
 summary=results/summary.csv
 echo "variant,vus,rps,p99_ms,error_pct,mem_peak_mb,cpu_avg_pct" > "$summary"
 
-for v in $VARIANTS; do
-  for vus in $LEVELS; do
-    echo ">> $v com $vus usuários"
+run=0
+for v in "${variants[@]}"; do
+  for vus in "${levels[@]}"; do
+    run=$((run + 1))
+    echo
+    step "=== Rodada $run/$total: $v com $vus usuários ==="
+    step "[$run/$total] Reiniciando $v"
     docker compose up -d --force-recreate "$v" > /dev/null
+    step "[$run/$total] Aguardando o health check"
     until curl -sf "http://localhost:${MGMT[$v]}/actuator/health" > /dev/null; do sleep 1; done
 
+    step "[$run/$total] Aquecimento: 50 usuários por 20s (não medido)"
     k6 "$v" 50 20s || true   # aquecimento do JIT
 
+    step "[$run/$total] Medindo: $vus usuários por $DURATION (fim previsto: $(date -d "+$(sed 's/m$/ min/; s/s$/ sec/' <<< "$DURATION")" +%H:%M:%S 2>/dev/null || echo "?"))"
     scripts/collect-metrics.sh "${MGMT[$v]}" "results/raw/$v-$vus-metrics.csv" &
     collector=$!
     k6 "$v" "$vus" "$DURATION" --summary-export "/out/$v-$vus.json" || true
     kill "$collector"
+    step "[$run/$total] Carga concluída, calculando o resumo"
 
     json="results/raw/$v-$vus.json"
     rps=$(jq '.metrics.http_reqs.rate' "$json")
@@ -51,10 +75,14 @@ for v in $VARIANTS; do
       END { printf "%.0f %.1f\n", m/1048576, (n ? c/n*100 : 0) }' "results/raw/$v-$vus-metrics.csv")
     printf "%s,%s,%.0f,%.0f,%.2f,%s,%s\n" "$v" "$vus" "$rps" "$p99" "$err" "$mem" "$cpu" | tee -a "$summary"
 
+    step "[$run/$total] Parando $v"
     docker compose stop "$v" > /dev/null
   done
 done
 
+echo
+step "Derrubando os containers"
 docker compose down > /dev/null
+step "Fim. Resumo em $summary"
 echo
 column -s, -t < "$summary"
