@@ -24,7 +24,7 @@ class QuoteController {
     }
 
     @GetMapping("/quote")
-    ResponseEntity<Map<String, String>> quote() {
+    ResponseEntity<Object> quote() {
         try {
             PriceResponse price = stub.get()
                 .uri("/price")
@@ -38,7 +38,7 @@ class QuoteController {
             
             log.info("quote price={} converted={}", price.value(), converted.value());
 
-            return ResponseEntity.ok(Map.of("price", price.value().toString(), "converted", converted.value().toString()));
+            return ResponseEntity.ok(new QuoteResponse(price.value(), converted.value()));
         } catch (ResourceAccessException | HttpServerErrorException e) {
             log.error("Error fetching quote", e);
             return ResponseEntity.status(502).body(Map.of("error", "Bad Gateway"));
@@ -47,4 +47,5 @@ class QuoteController {
 
     record PriceResponse(BigDecimal value) {}
     record ConvertResponse(BigDecimal value) {}
+    record QuoteResponse(BigDecimal price, BigDecimal converted) {}
 }
