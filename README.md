@@ -67,5 +67,8 @@ Máquina: [CPU, memória, sistema operacional]
 
 ## O que aprendi
 
-- [O primeiro tropeço na versão WebFlux e como resolvi]
+- `block()` na thread do Netty gera `IllegalStateException`. A solução é encadear as chamadas com `flatMap`.
+- Erro assíncrono não cai no `try/catch`. A primeira versão respondia 200 com "Bad Gateway" no corpo. A solução é `onErrorResume` devolvendo 502.
+- O traceId sumia dos logs. Ele só volta com `spring.reactor.context-propagation: auto`, que tem custo em cada operador.
+- Breakpoint na linha da cadeia para na montagem do fluxo, não na chamada. Para depurar, use breakpoint dentro da lambda ou `.log()`.
 - [Conclusão tirada dos números]
