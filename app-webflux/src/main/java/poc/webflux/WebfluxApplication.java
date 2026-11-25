@@ -31,9 +31,10 @@ public class WebfluxApplication {
     WebClient stubClient(WebClient.Builder builder,
                          @Value("${stub.base-url}") String baseUrl,
                          @Value("${stub.connect-timeout}") Duration connectTimeout,
-                         @Value("${stub.read-timeout}") Duration readTimeout) {
+                         @Value("${stub.read-timeout}") Duration readTimeout,
+                         @Value("${stub.max-concurrency}") int maxConcurrency) {
         ConnectionProvider pool = ConnectionProvider.builder("stub")
-                .maxConnections(2000)
+                .maxConnections(maxConcurrency)
                 .pendingAcquireMaxCount(-1)
                 .build();
         HttpClient httpClient = HttpClient.create(pool)
