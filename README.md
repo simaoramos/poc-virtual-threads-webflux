@@ -2,12 +2,14 @@
 
 ## Objetivo
 
-Comparar o mesmo endpoint, sob a mesma carga de I/O, em três versões:
+Comparar o mesmo endpoint, sob a mesma carga de I/O, em cinco variantes:
 
 | Variante | Modelo |
 |---|---|
 | `mvc-platform` | Spring MVC com threads de plataforma (Tomcat, 200 threads) |
-| `mvc-virtual` | Spring MVC com `spring.threads.virtual.enabled=true` |
+| `mvc-platform-1000` | Igual à anterior, com 1.000 threads: controle para separar o efeito do modelo de thread do efeito do limite de concorrência |
+| `mvc-virtual` | Spring MVC com `spring.threads.virtual.enabled=true`, sem limite de concorrência |
+| `mvc-virtual-limited` | Igual à anterior, com no máximo 1.000 requisições processadas ao mesmo tempo (com 2.000, o heap de 384 MB estoura) |
 | `webflux` | Spring WebFlux com WebClient |
 
 O endpoint `GET /quote` faz duas chamadas em sequência a um serviço que leva 100 ms para responder (`/price` e depois `/convert`, que usa o resultado da primeira). Depois loga o resultado e o devolve.
@@ -35,8 +37,9 @@ VARIANTS="mvc-virtual" LEVELS="100" DURATION=20s ./run-load.sh
 ## Decisões para manter a comparação justa
 
 - Cada app roda num container limitado a 2 vCPU e 512 MB. O stub não tem limite e é não bloqueante, para nunca ser o gargalo.
-- As duas variantes MVC usam o mesmo código. Só muda a propriedade de virtual threads.
-- O pool de conexões do WebClient foi aumentado para 2.000 conexões, com fila de espera ilimitada. O padrão do Reactor Netty é pequeno e derrubaria o WebFlux por falta de conexão, não por modelo de execução. O cliente HTTP do JDK, usado pelo RestClient, não limita conexões.
+- As variantes MVC usam o mesmo código. Só mudam as propriedades `VIRTUAL_THREADS` e `MAX_CONCURRENT_REQUESTS`.
+- As chamadas simultâneas ao stub são limitadas a 2.000 nas duas apps (`stub.max-concurrency`). No WebFlux, pelo pool do Reactor Netty, cujo padrão é pequeno e derrubaria o WebFlux por falta de conexão, não por modelo de execução. No MVC, por um semáforo no RestClient, porque o cliente HTTP do JDK não limita conexões.
+- O limite de requisições da `mvc-virtual-limited` (`ConcurrencyLimitConfig`) envolve o executor de virtual threads do Tomcat com um semáforo. A requisição excedente espera numa virtual thread parada, antes de o Tomcat alocar os buffers de processamento.
 - As métricas do Actuator ficam numa porta separada (9090). Assim, a coleta não disputa threads com a carga.
 - O tracing está ligado (amostragem de 100%) nas duas apps, com o mesmo custo para todas.
 - `process.cpu.usage` é a fração de CPU usada pela JVM em relação às CPUs disponíveis no container. `jvm.memory.used` soma heap e não heap.

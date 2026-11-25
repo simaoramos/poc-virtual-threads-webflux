@@ -24,6 +24,16 @@ services:
       VIRTUAL_THREADS: "false"
     ports: ["8082:8080", "9092:9090"]
 
+  mvc-platform-1000:
+    <<: *limits
+    build: { context: ., args: { MODULE: app-mvc } }
+    depends_on: [stub]
+    environment:
+      STUB_BASE_URL: http://stub:8081
+      VIRTUAL_THREADS: "false"
+      SERVER_TOMCAT_THREADS_MAX: "1000"
+    ports: ["8086:8080", "9096:9090"]
+
   mvc-virtual:
     <<: *limits
     build: { context: ., args: { MODULE: app-mvc } }
@@ -32,6 +42,16 @@ services:
       STUB_BASE_URL: http://stub:8081
       VIRTUAL_THREADS: "true"
     ports: ["8083:8080", "9093:9090"]
+
+  mvc-virtual-limited:
+    <<: *limits
+    build: { context: ., args: { MODULE: app-mvc } }
+    depends_on: [stub]
+    environment:
+      STUB_BASE_URL: http://stub:8081
+      VIRTUAL_THREADS: "true"
+      MAX_CONCURRENT_REQUESTS: "1000"
+    ports: ["8085:8080", "9095:9090"]
 
   webflux:
     <<: *limits

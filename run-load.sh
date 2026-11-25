@@ -3,15 +3,15 @@
 # Cada combinação começa com a app recém-iniciada e um aquecimento de 20s (não medido).
 #
 # Variáveis opcionais:
-#   VARIANTS="mvc-platform mvc-virtual webflux"  LEVELS="100 1000 5000"  DURATION=1m
+#   VARIANTS="mvc-platform mvc-platform-1000 mvc-virtual mvc-virtual-limited webflux"  LEVELS="100 1000 5000"  DURATION=1m
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VARIANTS=${VARIANTS:-"mvc-platform mvc-virtual webflux"}
+VARIANTS=${VARIANTS:-"mvc-platform mvc-platform-1000 mvc-virtual mvc-virtual-limited webflux"}
 LEVELS=${LEVELS:-"100 1000 5000"}
 DURATION=${DURATION:-1m}
 K6_IMAGE=${K6_IMAGE:-grafana/k6:latest}
-declare -A MGMT=([mvc-platform]=9092 [mvc-virtual]=9093 [webflux]=9094)
+declare -A MGMT=([mvc-platform]=9092 [mvc-virtual]=9093 [webflux]=9094 [mvc-virtual-limited]=9095 [mvc-platform-1000]=9096)
 
 START=$SECONDS
 # Checkpoint: hora, tempo decorrido desde o início e a mensagem.
